@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-PlantPulse.Worker-ffa3c28d-ea5b-4868-8983-b90502d77e6a</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlantPulse.Application\PlantPulse.Application.csproj" />
+    <ProjectReference Include="..\PlantPulse.Infrastructure\PlantPulse.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
