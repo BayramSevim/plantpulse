@@ -6,5 +6,8 @@ using PlantPulse.Domain.Common;
 
 namespace PlantPulse.Domain.Alarms.Events
 {
+    /// <summary>
+    /// Olay: alarm onaylandı.
+    /// </summary>
     public sealed record AlarmAcknowledged(Guid AlarmId, string AcknowledgedBy, DateTime AcknowledgedAt) : IDomainEvent;
 }

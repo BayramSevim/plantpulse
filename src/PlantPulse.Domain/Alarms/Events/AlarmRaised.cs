@@ -6,6 +6,9 @@ using PlantPulse.Domain.Common;
 
 namespace PlantPulse.Domain.Alarms.Events
 {
+    /// <summary>
+    /// Olay: alarm açıldı.
+    /// </summary>
     public sealed record AlarmRaised(
     Guid AlarmId,
     Guid DeviceId,
