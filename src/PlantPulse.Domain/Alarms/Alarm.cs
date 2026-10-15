@@ -1,8 +1,9 @@
 using PlantPulse.Domain.Common;
+using PlantPulse.Domain.Alarms.Events;
 
 namespace PlantPulse.Domain.Alarms
 {
-    public class Alarm
+    public class Alarm : AggregateRoot
     {
         public Guid Id { get; private set; }
         public Guid RuleId { get; private set; }
@@ -35,7 +36,9 @@ namespace PlantPulse.Domain.Alarms
             TriggerValue = triggerValue;
             OpenedAt = openedAt;
             Status = AlarmStatus.Active;
+            Raise(new AlarmRaised(Id, DeviceId, RuleId, Severity, TriggerValue, OpenedAt));
         }
+
 
         public void Clear(double value, DateTime at)
         {
@@ -49,6 +52,7 @@ namespace PlantPulse.Domain.Alarms
             Status = AlarmStatus.Cleared;
             ClearedValue = value;
             ClearedAt = at;
+            Raise(new AlarmCleared(Id, DeviceId, ClearedValue.Value, ClearedAt.Value));
         }
 
         public void Acknowledge(string by, DateTime at)
@@ -62,6 +66,7 @@ namespace PlantPulse.Domain.Alarms
 
             AcknowledgedBy = by.Trim();
             AcknowledgedAt = at;
+            Raise(new AlarmAcknowledged(Id, AcknowledgedBy!, AcknowledgedAt.Value));
         }
     }
 }
