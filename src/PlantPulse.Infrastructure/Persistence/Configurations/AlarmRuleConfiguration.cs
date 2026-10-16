@@ -15,8 +15,9 @@ namespace PlantPulse.Infrastructure.Persistence.Configurations
             builder.Property(r => r.Id).ValueGeneratedNever();
 
             builder.HasOne<Device>()
-                .WithMany()
-                .HasForeignKey(r => r.DeviceId);
+                    .WithMany()
+                    .HasForeignKey(r => r.DeviceId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
             builder.ComplexProperty(r => r.Threshold, t =>
             {

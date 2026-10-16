@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace PlantPulse.Domain.Alarms.RuleEngine
 {
     /// <summary>
-    /// Alarm değerlendirici (kural motoru): gelen değere bakıp alarm açılsın mı, kapansın mı, yoksa bir şey yapılmasın mı karar verir. Saf fonksiyon: veritabanı veya saat kullanmaz, her şeyi parametre olarak alır.
+    /// Alarm değerlendirici (kural motoru): gelen değere bakıp alarm açılsın mı, kapansın mı, yoksa bir şey yapılmasın mı karar verir.
     /// </summary>
     public static class AlarmEvaluator
     {
