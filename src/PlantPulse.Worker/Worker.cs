@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Confluent.Kafka;
+using PlantPulse.Application.Readings;
 using PlantPulse.Worker.Messaging;
 
 namespace PlantPulse.Worker;
@@ -8,16 +9,17 @@ public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public Worker(ILogger<Worker> logger, IConfiguration configuration)
+    public Worker(ILogger<Worker> logger, IConfiguration configuration, IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _configuration = configuration;
+        _scopeFactory = scopeFactory;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Consume() thread'i bloklar; host açılışını bekletmemek için arka plana geç.
         await Task.Yield();
 
         var topic = _configuration["Kafka:Topic"];
@@ -45,6 +47,13 @@ public class Worker : BackgroundService
 
                     _logger.LogInformation("Received {DeviceCode} = {Value} (partition {Partition})",
                         message?.DeviceCode, message?.Value, result.Partition.Value);
+
+                    if (message is not null)
+                    {
+                        using var scope = _scopeFactory.CreateScope();
+                        var processor = scope.ServiceProvider.GetRequiredService<ReadingProcessor>();
+                        await processor.ProcessAsync(message.DeviceCode, message.Value, message.Timestamp, stoppingToken);
+                    }
                 }
                 catch (JsonException ex)
                 {
