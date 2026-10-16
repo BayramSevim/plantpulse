@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using PlantPulse.Application.Abstractions;
 using PlantPulse.Domain.Alarms;
 using PlantPulse.Domain.Common;
 using PlantPulse.Domain.Devices;
@@ -10,7 +11,7 @@ using PlantPulse.Infrastructure.Outbox;
 
 namespace PlantPulse.Infrastructure.Persistence
 {
-    public class PlantPulseDbContext : DbContext
+    public class PlantPulseDbContext : DbContext, IUnitOfWork
     {
 
         public DbSet<Device> Devices => Set<Device>();
