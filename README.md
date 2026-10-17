@@ -3,8 +3,7 @@
 Industrial telemetry and alarm platform built with .NET 8.
 
 Factory devices (pellet presses, dryers, silos...) stream readings to Kafka. A worker stores them in batches, keeps the latest value of every device in Redis and runs a rule engine that opens an alarm when a reading stays beyond its threshold for a configured duration, and closes it on recovery with hysteresis. Alarm events leave the system through a transactional outbox with retries and exponential backoff, and reach a live dashboard through SignalR.
-
-![CI](https://github.com/BayramSevim/plantpulse/actions/workflows/ci.yml/badge.svg)
+ 
 
 ## Architecture
 
