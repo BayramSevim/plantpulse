@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlantPulse — Canlı İzleme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1216; --panel: #151B21; --head: #11161B; --line: #26303A; --line2: #2E3944;
+    --text: #E6EBEF; --muted: #9AA7B2; --dim: #6E7C88;
+    --ok: #4FB3E8; --ok-bg: #17303F; --ok-fg: #8CCBF0;
+    --warn: #F0A23B; --warn-bg: #1E1A12; --warn-line: #6B4F1E; --warn-fg: #F5C27A;
+    --crit: #FF8A78; --crit-bg: #1E1715; --crit-line: #7A3A30; --crit-fg: #FFB4A8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "IBM Plex Sans", system-ui, sans-serif; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  header { background: var(--head); border-bottom: 1px solid var(--line); }
+  .bar { max-width: 1440px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
+  .brand { display: flex; gap: 12px; align-items: center; }
+  .brand b { font-size: 18px; }
+  .brand small { display: block; color: var(--muted); font-size: 12px; }
+  .chip { display: inline-flex; gap: 8px; align-items: center; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: #C9D2DA; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+  .dot.on { background: var(--ok); box-shadow: 0 0 0 4px rgba(79,179,232,.18); }
+  .dot.off { background: var(--crit); }
+  label.op { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+  input { background: var(--panel); border: 1px solid var(--line2); color: var(--text); border-radius: 6px; padding: 8px 10px; font: inherit; min-height: 36px; }
+  main { max-width: 1440px; margin: 0 auto; padding: 20px 24px 40px; display: grid; grid-template-columns: minmax(0,1fr) 380px; gap: 20px; }
+  @media (max-width: 1100px) { main { grid-template-columns: minmax(0,1fr); } }
+  h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .card.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+  .card.crit { background: var(--crit-bg); border-color: var(--crit-line); }
+  .card .top { display: flex; justify-content: space-between; gap: 8px; }
+  .card .name { font-weight: 600; }
+  .card .sub { color: var(--muted); font-size: 12px; }
+  .badge { font-size: 11px; padding: 3px 8px; border-radius: 999px; height: fit-content; background: var(--ok-bg); color: var(--ok-fg); white-space: nowrap; }
+  .badge.warn { background: #3A2C12; color: var(--warn-fg); font-weight: 600; }
+  .badge.crit { background: #4A211B; color: var(--crit-fg); font-weight: 600; }
+  .value { font-family: "IBM Plex Mono", monospace; font-size: 26px; font-weight: 600; margin: 8px 0 4px; }
+  .card.crit .value { color: var(--crit); }
+  .card.warn .value { color: var(--warn); }
+  .value small { font-size: 14px; color: var(--muted); }
+  .spark { width: 100%; height: 48px; display: block; }
+  .foot { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: 6px; }
+  aside { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .alarm { border: 1px solid var(--line2); border-radius: 8px; padding: 12px; margin-top: 10px; }
+  .alarm.crit { border-color: var(--crit-line); background: var(--crit-bg); }
+  .alarm.warn { border-color: var(--warn-line); background: var(--warn-bg); }
+  .alarm .row { display: flex; justify-content: space-between; gap: 8px; }
+  .alarm .meta { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  button { margin-top: 10px; min-height: 40px; width: 100%; background: transparent; border: 1px solid #3A4651; color: var(--text); border-radius: 6px; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--ok); }
+  button:disabled { opacity: .5; cursor: default; }
+  .acked { margin-top: 8px; font-size: 12px; color: var(--ok-fg); }
+  .empty { color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .closed { padding: 10px 0; border-bottom: 1px solid #222B33; }
+  .closed:last-child { border-bottom: 0; }
+  .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #2A1B18; border: 1px solid var(--crit-line); color: var(--crit-fg); padding: 10px 14px; border-radius: 8px; display: none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <svg width="32" height="32" viewBox="0 0 34 34" fill="none" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="8" stroke="#F0A23B" stroke-width="2"/><polyline points="6,19 12,19 15,10 19,25 22,15 28,15" stroke="#F0A23B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><b>PlantPulse</b><small>Canlı İzleme</small></div>
+    </div>
+    <label class="op">Operatör <input id="operator" placeholder="Adınız" autocomplete="name"></label>
+    <span class="chip"><span id="liveDot" class="dot"></span><span id="liveText">Bağlanıyor…</span></span>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>Cihazlar · son değerler</h2>
+    <div id="devices" class="grid"></div>
+  </section>
+  <aside>
+    <div class="panel">
+      <h2>Açık alarmlar</h2>
+      <div id="activeAlarms"><div class="empty">Yükleniyor…</div></div>
+    </div>
+    <div class="panel">
+      <h2>Kapanan alarmlar</h2>
+      <div id="clearedAlarms"><div class="empty">Yükleniyor…</div></div>
+    </div>
+  </aside>
+</main>
+
+<div id="toast" class="toast" role="alert"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+<script>
+  const WINDOW_MS = 5 * 60 * 1000;
+  const devices = new Map();
+  const series = new Map();
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = (v) => v == null ? "—" : Number(v).toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  const time = (ts) => ts ? new Date(ts).toLocaleTimeString("tr-TR") : "—";
+  const duration = (from, to) => {
+    const s = Math.max(0, Math.round(((to ? new Date(to) : new Date()) - new Date(from)) / 1000));
+    return s < 60 ? `${s} sn` : `${Math.floor(s / 60)} dk ${s % 60} sn`;
+  };
+
+  function toast(msg) {
+    const el = $("toast"); el.textContent = msg; el.style.display = "block";
+    clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = "none", 4000);
+  }
+
+  try { $("operator").value = localStorage.getItem("pp-operator") || ""; } catch { }
+  $("operator").addEventListener("change", e => { try { localStorage.setItem("pp-operator", e.target.value); } catch { } });
+
+  function severityClass(d) {
+    if (d.activeAlarmSeverity === "Critical") return "crit";
+    if (d.activeAlarmSeverity === "Warning") return "warn";
+    return "";
+  }
+
+  function sparkline(d) {
+    const points = series.get(d.code) || [];
+    if (points.length < 2) return `<svg class="spark" viewBox="0 0 240 48" aria-hidden="true"></svg>`;
+    const now = Date.now(), from = now - WINDOW_MS;
+    const values = points.map(p => p.v);
+    if (d.thresholdLimit != null) values.push(d.thresholdLimit);
+    let min = Math.min(...values), max = Math.max(...values);
+    const pad = (max - min) * 0.1 || 1; min -= pad; max += pad;
+    const x = t => ((t - from) / WINDOW_MS) * 240;
+    const y = v => 48 - ((v - min) / (max - min)) * 48;
+    const line = points.map(p => `${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
+    const color = severityClass(d) === "crit" ? "#FF8A78" : severityClass(d) === "warn" ? "#F0A23B" : "#4FB3E8";
+    const limit = d.thresholdLimit != null
+      ? `<line x1="0" x2="240" y1="${y(d.thresholdLimit).toFixed(1)}" y2="${y(d.thresholdLimit).toFixed(1)}" stroke="#6E7C88" stroke-dasharray="4 4"/>` : "";
+    return `<svg class="spark" viewBox="0 0 240 48" preserveAspectRatio="none" role="img" aria-label="${esc(d.name)} son 5 dakika">${limit}<polyline points="${line}" fill="none" stroke="${color}" stroke-width="2"/></svg>`;
+  }
+
+  function cardHtml(d) {
+    const sev = severityClass(d);
+    const badge = sev === "crit" ? `<span class="badge crit">KRİTİK</span>`
+                : sev === "warn" ? `<span class="badge warn">UYARI</span>`
+                : `<span class="badge">Normal</span>`;
+    const dir = d.thresholdDirection === "Below" ? "altı" : "üstü";
+    const rule = d.thresholdLimit != null ? `Eşik ${fmt(d.thresholdLimit)} ${esc(d.unit)} ${dir} · ${d.durationSeconds} sn` : "Kural yok";
+    return `<div class="top"><div><div class="name">${esc(d.name)}</div><div class="sub mono">${esc(d.code)}</div></div>${badge}</div>
+      <div class="value">${fmt(d.value)} <small>${esc(d.unit)}</small></div>
+      ${sparkline(d)}
+      <div class="foot"><span>${rule}</span><span class="mono">${time(d.timestamp)}</span></div>`;
+  }
+
+  function renderCard(code) {
+    const d = devices.get(code);
+    let el = document.getElementById(`dev-${code}`);
+    if (!el) { el = document.createElement("article"); el.id = `dev-${code}`; $("devices").appendChild(el); }
+    el.className = `card ${severityClass(d)}`;
+    el.innerHTML = cardHtml(d);
+  }
+
+  async function loadDevices() {
+    const list = await (await fetch("/api/devices")).json();
+    for (const d of list) devices.set(d.code, d);
+    await Promise.all(list.filter(d => !series.has(d.code)).map(async d => {
+      const pts = await (await fetch(`/api/devices/${encodeURIComponent(d.code)}/readings?minutes=5`)).json();
+      series.set(d.code, pts.map(p => ({ t: new Date(p.timestamp).getTime(), v: p.value })));
+    }));
+    list.forEach(d => renderCard(d.code));
+  }
+
+  function onReading(r) {
+    const d = devices.get(r.deviceCode);
+    if (!d) return;
+    d.value = r.value; d.timestamp = r.timestamp;
+    const pts = series.get(r.deviceCode) || [];
+    pts.push({ t: new Date(r.timestamp).getTime(), v: r.value });
+    const from = Date.now() - WINDOW_MS;
+    while (pts.length && pts[0].t < from) pts.shift();
+    series.set(r.deviceCode, pts);
+    renderCard(r.deviceCode);
+  }
+
+  function activeAlarmHtml(a) {
+    const sev = a.severity === "Critical" ? "crit" : "warn";
+    const ack = a.acknowledgedBy
+      ? `<div class="acked">✓ ${esc(a.acknowledgedBy)} onayladı · ${time(a.acknowledgedAt)}</div>`
+      : `<button data-ack="${a.id}">Gördüm, onayla</button>`;
+    return `<div class="alarm ${sev}">
+      <div class="row"><b>${esc(a.deviceName)}</b><span class="badge ${sev}">${sev === "crit" ? "KRİTİK" : "UYARI"}</span></div>
+      <div class="meta mono">${fmt(a.triggerValue)} ile açıldı · ${time(a.openedAt)} · ${duration(a.openedAt)}</div>
+      ${ack}</div>`;
+  }
+
+  function clearedAlarmHtml(a) {
+    const ack = a.acknowledgedBy ? ` · ✓ ${esc(a.acknowledgedBy)}` : ` · <button data-ack="${a.id}" style="width:auto;min-height:28px;margin:0 0 0 6px;padding:0 10px">onayla</button>`;
+    return `<div class="closed">
+      <div class="row" style="display:flex;justify-content:space-between"><span>${esc(a.deviceName)}</span><span class="mono" style="color:var(--muted);font-size:12px">${duration(a.openedAt, a.clearedAt)}</span></div>
+      <div class="meta">${fmt(a.triggerValue)} → ${fmt(a.clearedValue)} · ${time(a.openedAt)}–${time(a.clearedAt)}${ack}</div></div>`;
+  }
+
+  async function loadAlarms() {
+    const [active, cleared] = await Promise.all([
+      fetch("/api/alarms?status=active").then(r => r.json()),
+      fetch("/api/alarms?status=cleared&limit=10").then(r => r.json())
+    ]);
+    $("activeAlarms").innerHTML = active.length ? active.map(activeAlarmHtml).join("") : `<div class="empty">Açık alarm yok.</div>`;
+    $("clearedAlarms").innerHTML = cleared.length ? cleared.map(clearedAlarmHtml).join("") : `<div class="empty">Henüz kapanan alarm yok.</div>`;
+  }
+
+  document.addEventListener("click", async e => {
+    const id = e.target?.dataset?.ack;
+    if (!id) return;
+    const by = $("operator").value.trim();
+    if (!by) { toast("Onaylamak için önce operatör adını yazın."); $("operator").focus(); return; }
+    e.target.disabled = true;
+    const res = await fetch(`/api/alarms/${id}/acknowledge`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ by })
+    });
+    if (!res.ok) {
+      const problem = await res.json().catch(() => ({}));
+      toast(problem.detail || `Onay başarısız (${res.status})`);
+      e.target.disabled = false;
+    }
+  });
+
+  let refreshTimer;
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => Promise.all([loadDevices(), loadAlarms()]).catch(console.error), 300);
+  }
+
+  setInterval(() => loadAlarms().catch(() => {}), 15000);
+
+  function setLive(state) {
+    const on = state === "on";
+    $("liveDot").className = `dot ${on ? "on" : state === "off" ? "off" : ""}`;
+    $("liveText").textContent = on ? "SignalR canlı" : state === "off" ? "Bağlantı yok" : "Yeniden bağlanıyor…";
+  }
+
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/hubs/plant")
+    .withAutomaticReconnect()
+    .build();
+
+  connection.on("reading", onReading);
+  connection.on("alarm", scheduleRefresh);
+  connection.onreconnecting(() => setLive("wait"));
+  connection.onreconnected(() => { setLive("on"); scheduleRefresh(); });
+  connection.onclose(() => setLive("off"));
+
+  (async () => {
+    try {
+      await Promise.all([loadDevices(), loadAlarms()]);
+    } catch (err) {
+      console.error(err); toast("API'ye ulaşılamadı.");
+    }
+    try {
+      await connection.start(); setLive("on");
+    } catch (err) {
+      console.error(err); setLive("off");
+    }
+  })();
+</script>
+</body>
+</html>

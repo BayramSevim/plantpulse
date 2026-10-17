@@ -5,14 +5,8 @@ using System.Threading.Tasks;
 
 namespace PlantPulse.Domain.Alarms.RuleEngine
 {
-    /// <summary>
-    /// Alarm değerlendirici (kural motoru): gelen değere bakıp alarm açılsın mı, kapansın mı, yoksa bir şey yapılmasın mı karar verir.
-    /// </summary>
     public static class AlarmEvaluator
     {
-        /// <summary>
-        /// Değerlendir: kurala, gelen değere, aşımın başladığı zamana ve açık alarm olup olmadığına bakıp kararı döndürür.
-        /// </summary>
         public static Evaluation Evaluate(
             AlarmRule rule,
             double value,

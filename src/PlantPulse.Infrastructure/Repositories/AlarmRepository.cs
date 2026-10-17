@@ -13,6 +13,12 @@ namespace PlantPulse.Infrastructure.Repositories
         {
             _db = db;
         }
+
+        public Task<Alarm?> GetByIdAsync(Guid id, CancellationToken ct)
+        {
+            return _db.Alarms.FirstOrDefaultAsync(a => a.Id == id, ct);
+        }
+
         public async Task AddAsync(Alarm alarm, CancellationToken ct)
         {
             await _db.Alarms.AddAsync(alarm, ct);

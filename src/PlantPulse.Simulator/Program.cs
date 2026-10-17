@@ -5,7 +5,6 @@ using PlantPulse.Simulator;
 const string topic = "plant.readings";
 var interval = TimeSpan.FromSeconds(1);
 
-// Sahadaki cihazlar. Kodlar, veritabanındaki devices tablosuyla aynı olmalı.
 var devices = new List<DeviceProfile>
 {
     new("PRESS-01",  "MotorCurrent", BaseValue: 182, Noise: 3,   SpikeOffset: 35),
@@ -23,18 +22,14 @@ var devices = new List<DeviceProfile>
 var config = new ProducerConfig
 {
     BootstrapServers = "localhost:9092",
-    // Mesaj, Kafka'nın bütün kopyalarına yazılmadan "gönderildi" sayılmasın.
     Acks = Acks.All,
-    // Ağ hatasında yeniden gönderilen mesaj Kafka'da ikinci kez yazılmasın.
     EnableIdempotence = true,
-    // Mesajları 5 ms biriktirip toplu gönder: daha az ağ trafiği.
     LingerMs = 5
 };
 
 using var producer = new ProducerBuilder<string, string>(config).Build();
 var generator = new ReadingGenerator();
 
-// Ctrl+C ile düzgün kapanış
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
@@ -48,8 +43,6 @@ while (!cts.IsCancellationRequested)
     {
         var reading = new ReadingMessage(device.Code, generator.Next(device), now);
 
-        // Key = cihaz kodu → aynı cihazın okumaları hep aynı partition'a gider,
-        // böylece Worker onları gönderildiği sırayla okur.
         producer.Produce(topic, new Message<string, string>
         {
             Key = device.Code,
@@ -68,6 +61,5 @@ while (!cts.IsCancellationRequested)
     catch (TaskCanceledException) { }
 }
 
-// Kapanmadan önce kuyrukta bekleyen mesajları gönder
 producer.Flush(TimeSpan.FromSeconds(5));
 Console.WriteLine("Simulator stopped.");

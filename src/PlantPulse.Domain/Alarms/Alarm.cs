@@ -3,64 +3,25 @@ using PlantPulse.Domain.Alarms.Events;
 
 namespace PlantPulse.Domain.Alarms
 {
-    /// <summary>
-    /// Alarm kaydı: bir kuralın tetiklendiği tek bir olay. Açılır (Active), kapanır (Cleared), operatör tarafından onaylanır (Acknowledge).
-    /// </summary>
     public class Alarm : AggregateRoot
     {
-        /// <summary>
-        /// Alarmın kimliği.
-        /// </summary>
         public Guid Id { get; private set; }
-        /// <summary>
-        /// Alarmı tetikleyen kural.
-        /// </summary>
         public Guid RuleId { get; private set; }
-        /// <summary>
-        /// Alarmın ait olduğu cihaz (kuraldan alınır).
-        /// </summary>
         public Guid DeviceId { get; private set; }
-        /// <summary>
-        /// Önem derecesi (kuraldan alınır).
-        /// </summary>
         public AlarmSeverity Severity { get; private set; }
-        /// <summary>
-        /// Durum: Active (açık) / Cleared (kapandı).
-        /// </summary>
         public AlarmStatus Status { get; private set; }
 
-        /// <summary>
-        /// Alarmı tetikleyen değer.
-        /// </summary>
         public double TriggerValue { get; private set; }
-        /// <summary>
-        /// Alarmın açıldığı zaman.
-        /// </summary>
         public DateTime OpenedAt { get; private set; }
 
-        /// <summary>
-        /// Alarm kapandığı andaki değer (açıkken null).
-        /// </summary>
         public double? ClearedValue { get; private set; }
-        /// <summary>
-        /// Alarmın kapandığı zaman (açıkken null).
-        /// </summary>
         public DateTime? ClearedAt { get; private set; }
 
-        /// <summary>
-        /// Alarmı onaylayan kişi (onaylanmadıysa null).
-        /// </summary>
         public string? AcknowledgedBy { get; private set; }
-        /// <summary>
-        /// Onay zamanı (onaylanmadıysa null).
-        /// </summary>
         public DateTime? AcknowledgedAt { get; private set; }
 
         private Alarm() { }
 
-        /// <summary>
-        /// Kuraldan yeni alarm açar ve AlarmRaised (alarm açıldı) olayını üretir.
-        /// </summary>
         public Alarm(AlarmRule rule, double triggerValue, DateTime openedAt)
         {
             if (rule is null)
@@ -78,10 +39,6 @@ namespace PlantPulse.Domain.Alarms
             Raise(new AlarmRaised(Id, DeviceId, RuleId, Severity, TriggerValue, OpenedAt));
         }
 
-
-        /// <summary>
-        /// Alarmı kapatır (değer düzeldi) ve AlarmCleared (alarm kapandı) olayını üretir.
-        /// </summary>
         public void Clear(double value, DateTime at)
         {
             if (Status == AlarmStatus.Cleared)
@@ -97,9 +54,6 @@ namespace PlantPulse.Domain.Alarms
             Raise(new AlarmCleared(Id, DeviceId, ClearedValue.Value, ClearedAt.Value));
         }
 
-        /// <summary>
-        /// Alarmı onaylar (operatör "gördüm" der) ve AlarmAcknowledged olayını üretir. Kapanmış alarm da onaylanabilir: kimsenin görmediği bir alarmın izi kaybolmamalı.
-        /// </summary>
         public void Acknowledge(string by, DateTime at)
         {
             if (string.IsNullOrWhiteSpace(by))

@@ -25,7 +25,6 @@ public class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Consume() thread'i bloklar; host açılışını bekletmemek için arka plana geç.
         await Task.Yield();
 
         var topic = _configuration["Kafka:Topic"];
@@ -35,7 +34,7 @@ public class Worker : BackgroundService
             BootstrapServers = _configuration["Kafka:BootstrapServers"],
             GroupId = _configuration["Kafka:GroupId"],
             AutoOffsetReset = AutoOffsetReset.Earliest,
-            EnableAutoCommit = false // paketi işledikten SONRA kendimiz commit edeceğiz
+            EnableAutoCommit = false
         };
 
         using var consumer = new ConsumerBuilder<string, string>(consumerConfig).Build();
@@ -67,7 +66,6 @@ public class Worker : BackgroundService
                     }
                     catch (JsonException ex)
                     {
-                        // Bozuk mesaj: logla, atla. Commit edileceği için tekrar gelmez.
                         _logger.LogWarning(ex, "Invalid message skipped at {Partition}/{Offset}",
                             result.Partition.Value, result.Offset.Value);
                     }
@@ -86,6 +84,16 @@ public class Worker : BackgroundService
                         .Select(m => new ReadingData(m.DeviceCode, m.Value, m.Timestamp))
                         .ToList();
                     await writer.WriteAsync(readings, stoppingToken);
+
+                    var latestStore = scope.ServiceProvider.GetRequiredService<ILatestValueStore>();
+                    try
+                    {
+                        await latestStore.SetManyAsync(readings, stoppingToken);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogWarning(ex, "Could not update latest values in Redis");
+                    }
 
                     foreach (var m in batch)
                         await processor.ProcessAsync(m.DeviceCode, m.Value, m.Timestamp, stoppingToken);

@@ -4,24 +4,17 @@ using PlantPulse.Domain.Devices;
 
 namespace PlantPulse.Infrastructure.Persistence;
 
-/// <summary>
-/// Uygulama açılışında bekleyen migration'ları uygular ve veritabanı boşsa
-/// örnek cihazları ve alarm kurallarını ekler.
-/// Cihaz kodları Simulator'daki kodlarla birebir aynı olmalı.
-/// </summary>
 public static class DbSeeder
 {
     public static async Task SeedAsync(PlantPulseDbContext db, CancellationToken ct = default)
     {
         await db.Database.MigrateAsync(ct);
 
-        // Daha önce eklendiyse tekrar ekleme (uygulama her açılışta bunu çalıştırır).
         if (await db.Devices.AnyAsync(ct))
             return;
 
         var duration = TimeSpan.FromSeconds(30);
 
-        // (kod, ad, tip, eşik, önem)
         var seeds = new (string Code, string Name, DeviceType Type, Threshold Threshold, AlarmSeverity Severity)[]
         {
             ("PRESS-01",  "Pelet Presi 1", DeviceType.MotorCurrent, new Threshold(210, ThresholdDirection.Above, 5), AlarmSeverity.Critical),

@@ -9,5 +9,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PlantPulse.Domain.Tests/PlantPulse.Domain.Tests.csproj" />
+    <Project Path="tests/PlantPulse.IntegrationTests/PlantPulse.IntegrationTests.csproj" />
   </Folder>
 </Solution>
