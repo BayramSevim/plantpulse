@@ -8,6 +8,7 @@ using PlantPulse.Domain.Alarms;
 using PlantPulse.Domain.Common;
 using PlantPulse.Domain.Devices;
 using PlantPulse.Infrastructure.Outbox;
+using PlantPulse.Infrastructure.Readings;
 
 namespace PlantPulse.Infrastructure.Persistence
 {
@@ -18,6 +19,7 @@ namespace PlantPulse.Infrastructure.Persistence
         public DbSet<AlarmRule> AlarmRules => Set<AlarmRule>();
         public DbSet<Alarm> Alarms => Set<Alarm>();
         public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+        public DbSet<ReadingRecord> Readings => Set<ReadingRecord>();
 
         public PlantPulseDbContext(DbContextOptions<PlantPulseDbContext> options) : base(options)
         {

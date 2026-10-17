@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PlantPulse.Application.Abstractions;
 using PlantPulse.Infrastructure.Persistence;
+using PlantPulse.Infrastructure.Readings;
 using PlantPulse.Infrastructure.Repositories;
 using PlantPulse.Infrastructure.State;
 
@@ -19,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IAlarmRepository, AlarmRepository>();
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<PlantPulseDbContext>());
         services.AddSingleton<IBreachStateStore, InMemoryBreachStateStore>();
+        services.AddScoped<IReadingWriter, ReadingWriter>();
 
         return services;
     }

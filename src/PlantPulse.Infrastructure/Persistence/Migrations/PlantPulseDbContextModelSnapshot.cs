@@ -185,6 +185,32 @@ namespace PlantPulse.Infrastructure.Persistence.Migrations
                     b.ToTable("outbox_messages", (string)null);
                 });
 
+            modelBuilder.Entity("PlantPulse.Infrastructure.Readings.ReadingRecord", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("DeviceCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceCode", "Timestamp");
+
+                    b.ToTable("readings", (string)null);
+                });
+
             modelBuilder.Entity("PlantPulse.Domain.Alarms.AlarmRule", b =>
                 {
                     b.HasOne("PlantPulse.Domain.Devices.Device", null)
