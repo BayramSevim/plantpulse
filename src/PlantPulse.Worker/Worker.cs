@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Confluent.Kafka;
+using PlantPulse.Application.Abstractions;
 using PlantPulse.Application.Readings;
 using PlantPulse.Worker.Messaging;
 
@@ -7,6 +8,10 @@ namespace PlantPulse.Worker;
 
 public class Worker : BackgroundService
 {
+    private const int MaxBatchSize = 200;
+    private static readonly TimeSpan MaxBatchWait = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan PollTimeout = TimeSpan.FromMilliseconds(100);
+
     private readonly ILogger<Worker> _logger;
     private readonly IConfiguration _configuration;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -20,6 +25,7 @@ public class Worker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Consume() thread'i bloklar; host açılışını bekletmemek için arka plana geç.
         await Task.Yield();
 
         var topic = _configuration["Kafka:Topic"];
@@ -29,7 +35,7 @@ public class Worker : BackgroundService
             BootstrapServers = _configuration["Kafka:BootstrapServers"],
             GroupId = _configuration["Kafka:GroupId"],
             AutoOffsetReset = AutoOffsetReset.Earliest,
-            EnableAutoCommit = false // mesajı işledikten SONRA kendimiz commit edeceğiz
+            EnableAutoCommit = false // paketi işledikten SONRA kendimiz commit edeceğiz
         };
 
         using var consumer = new ConsumerBuilder<string, string>(consumerConfig).Build();
@@ -39,28 +45,55 @@ public class Worker : BackgroundService
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                var result = consumer.Consume(stoppingToken);
+                var batch = new List<ReadingMessage>(MaxBatchSize);
+                var hasAny = false;
+                var deadline = DateTime.UtcNow + MaxBatchWait;
 
-                try
+                while (batch.Count < MaxBatchSize
+                        && DateTime.UtcNow < deadline
+                        && !stoppingToken.IsCancellationRequested)
                 {
-                    var message = JsonSerializer.Deserialize<ReadingMessage>(result.Message.Value);
+                    var result = consumer.Consume(PollTimeout);
+                    if (result is null)
+                        continue;
 
-                    _logger.LogInformation("Received {DeviceCode} = {Value} (partition {Partition})",
-                        message?.DeviceCode, message?.Value, result.Partition.Value);
+                    hasAny = true;
 
-                    if (message is not null)
+                    try
                     {
-                        using var scope = _scopeFactory.CreateScope();
-                        var processor = scope.ServiceProvider.GetRequiredService<ReadingProcessor>();
-                        await processor.ProcessAsync(message.DeviceCode, message.Value, message.Timestamp, stoppingToken);
+                        var message = JsonSerializer.Deserialize<ReadingMessage>(result.Message.Value);
+                        if (message is not null)
+                            batch.Add(message);
+                    }
+                    catch (JsonException ex)
+                    {
+                        // Bozuk mesaj: logla, atla. Commit edileceği için tekrar gelmez.
+                        _logger.LogWarning(ex, "Invalid message skipped at {Partition}/{Offset}",
+                            result.Partition.Value, result.Offset.Value);
                     }
                 }
-                catch (JsonException ex)
+
+                if (!hasAny)
+                    continue;
+
+                if (batch.Count > 0)
                 {
-                    _logger.LogWarning(ex, "Invalid message skipped at offset {Offset}", result.Offset.Value);
+                    using var scope = _scopeFactory.CreateScope();
+                    var writer = scope.ServiceProvider.GetRequiredService<IReadingWriter>();
+                    var processor = scope.ServiceProvider.GetRequiredService<ReadingProcessor>();
+
+                    var readings = batch
+                        .Select(m => new ReadingData(m.DeviceCode, m.Value, m.Timestamp))
+                        .ToList();
+                    await writer.WriteAsync(readings, stoppingToken);
+
+                    foreach (var m in batch)
+                        await processor.ProcessAsync(m.DeviceCode, m.Value, m.Timestamp, stoppingToken);
+
+                    _logger.LogInformation("Processed batch of {Count} readings", batch.Count);
                 }
 
-                consumer.Commit(result);
+                consumer.Commit();
             }
         }
         catch (OperationCanceledException)
